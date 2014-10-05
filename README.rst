@@ -8,13 +8,16 @@ as a graph.  `Port Variants
 <https://guide.macports.org/#development.variants>`_ are taken into
 account.
 
+The type of dependency is indicated and dependencies that are not yet
+installed are marked with a light yellow background.
+
 Example
 -------
 Why does ``port install irssi -perl`` install `perl` anyway?
 
 Running the program from the terminal::
 
-# python macports_deptree irssi -perl
+# python macports_deptree.py irssi -perl | dot -Tpng -oirssi.png
 
 produces the dependency graph below showing that `perl` is required by
 `glib2`, one of the direct dependencies of `irssi`.
@@ -28,16 +31,15 @@ the BSD 3-Clause License.
 
 Installation
 ------------
-From a working MacPorts installation, install `macports_deptree`'s
-dependencies::
+`macports_deptree` requires `py-pydot`, install with::
 
-# port install py-dot graphviz
+# port install py-pydot
 
-download `macports_deptree.py` and copy it in a directory.  From this
-directory, run it with::
+Then download `macports_deptree.py` and copy it in a directory.  From
+this directory, run with::
 
 # python macports_deptree.py PORTNAME [-VARIANT +VARIANT ...]
 
-The graph for `py-dot` demonstrates a more complete example.
+The graph for `py-pydot` demonstrates a more complete example.
 
-.. image:: py-dot.png
+.. image:: py-pydot.png
