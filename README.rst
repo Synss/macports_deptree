@@ -8,8 +8,11 @@ as a graph.  `Port Variants
 <https://guide.macports.org/#development.variants>`_ are taken into
 account.
 
-The type of dependency is indicated and dependencies that are not yet
-installed are marked with a light yellow background.
+Colors
+------
+- A light yellow background indicates dependencies that would be
+  installed.
+- A light blue background indicates dependencies that would be upgraded.
 
 Example
 -------
