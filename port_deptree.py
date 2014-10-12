@@ -5,10 +5,10 @@
 """Print all dependencies required to build a port as a graph.
 
 Usage:
-    python macports_deptree.py PORTNAME [VARIANTS ...]
+    python port_deptree.py PORTNAME [VARIANTS ...]
 
 Example:
-    python macports_deptree.py irssi -perl | dot -Tpdf -oirssi.pdf
+    python port_deptree.py irssi -perl | dot -Tpdf -oirssi.pdf
 
 """
 import sys
@@ -16,7 +16,7 @@ import subprocess
 import threading
 from Queue import Queue
 import pydot
-__version__ = "0.3"
+__version__ = "0.4"
 
 
 class ThreadHandler(threading.Thread):
