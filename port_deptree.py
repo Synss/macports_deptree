@@ -65,7 +65,7 @@ def get_deps(portname, variants):
             yield section.split()[0].lower(), child
 
 
-def set_node_properties(node):
+def decorate_node(node):
     """Color `node` if it is outdated or not installed."""
     portname = node.get_name().strip('"')
     if not is_installed(portname):
@@ -87,8 +87,8 @@ def make_tree(portname, variants, graph):
         pydot.Dot: The graph.
 
     """
-    node_property_q = Queue()
-    thread = ThreadHandler(set_node_properties, node_property_q)
+    decorate_node_q = Queue()
+    thread = ThreadHandler(decorate_node, decorate_node_q)
     thread.start()
     def traverse(parent):
         """Recursively traverse dependencies to `parent`."""
@@ -96,7 +96,7 @@ def make_tree(portname, variants, graph):
             return
         else:
             graph.add_node(parent)
-        node_property_q.put(parent)
+        decorate_node_q.put(parent)
         for section, portname in get_deps(
                 parent.get_name().strip('"'), variants):
             child = pydot.Node(portname)
@@ -116,7 +116,7 @@ def make_tree(portname, variants, graph):
             traverse(child)
     root = pydot.Node(portname)
     traverse(root)
-    node_property_q.join()
+    decorate_node_q.join()
     return graph
 
 
