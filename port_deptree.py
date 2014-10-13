@@ -5,18 +5,21 @@
 """Print all dependencies required to build a port as a graph.
 
 Usage:
-    python port_deptree.py PORTNAME [VARIANTS ...]
+    port_deptree.py PORTNAME [VARIANTS ...]
 
 Example:
-    python port_deptree.py irssi -perl | dot -Tpdf -oirssi.pdf
+    port_deptree.py irssi -perl | dot -Tpdf -oirssi.pdf
+    port_deptree.py $(port echo requested and outdated)\
+            | dot -Tpdf | open -fa Preview
 
 """
+from __future__ import print_function
 import sys
 import subprocess
 import threading
 from Queue import Queue
 import pydot
-__version__ = "0.4"
+__version__ = "0.5"
 
 
 class ThreadHandler(threading.Thread):
@@ -73,7 +76,7 @@ def set_node_properties(node):
         node.set_color("forestgreen")
 
 
-def make_tree(portname, variants):
+def make_tree(portname, variants, graph):
     """Traverse dependency tree of `portname` with `variants`.
 
     Args:
@@ -84,11 +87,6 @@ def make_tree(portname, variants):
         pydot.Dot: The graph.
 
     """
-    graph = pydot.Dot(graph_type="digraph",
-                      overlap=False,
-                      bgcolor="transparent")
-    graph.set_node_defaults(style="filled", fillcolor="white",
-                            shape="doublecircle")
     node_property_q = Queue()
     thread = ThreadHandler(set_node_properties, node_property_q)
     thread.start()
@@ -123,7 +121,22 @@ def make_tree(portname, variants):
 
 
 if __name__ == '__main__':
-    portname = sys.argv[1]
-    variants = sys.argv[2:]
-    sys.stdout.write(make_tree(portname, variants).to_string())
-
+    graph = pydot.Dot(graph_type="digraph",
+                      overlap=False,
+                      bgcolor="transparent")
+    graph.set_node_defaults(style="filled", fillcolor="white",
+                            shape="doublecircle")
+    commandline = {}
+    for arg in sys.argv[1:]:
+        if arg.startswith("@"):
+            continue
+        elif not (arg.startswith("+") or arg.startswith("-")):
+            portname = arg
+            commandline[portname] = []
+        else:
+            commandline[portname].append(arg)
+    for portname, variants in commandline.iteritems():
+        print("Calculating dependencies for", portname, *variants,
+              file=sys.stderr)
+        make_tree(portname, variants, graph)
+    print(graph.to_string(), file=sys.stdout)
