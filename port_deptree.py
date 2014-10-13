@@ -37,6 +37,20 @@ class ThreadHandler(threading.Thread):
             self.queue.task_done()
 
 
+class Fillcolor(object):
+
+    Not_Installed = "moccasin"
+    Outdated = "lightblue"
+    Default = "white"
+
+
+class Color(object):
+
+    Not_Installed = "red"
+    Outdated = "forestgreen"
+    Default = "black"
+
+
 def is_installed(portname):
     """Return True if `portname` is installed, False otherwise."""
     process = ["port", "installed", portname]
@@ -47,7 +61,7 @@ def is_installed(portname):
 
 def is_outdated(portname):
     """Return True if `portname` is outdated, False otherwise."""
-    process = ["port", "outdated", portname]
+    process = ["port", "Outdated", portname]
     for line in subprocess.Popen(
             process, stdout=subprocess.PIPE).stdout.readlines():
         return not line.startswith("No")
@@ -66,14 +80,14 @@ def get_deps(portname, variants):
 
 
 def decorate_node(node):
-    """Color `node` if it is outdated or not installed."""
+    """Color `node` if it is Outdated or not installed."""
     portname = node.get_name().strip('"')
     if not is_installed(portname):
-        node.set_fillcolor("moccasin")
-        node.set_color("red")
+        node.set_fillcolor(Fillcolor.Not_Installed)
+        node.set_color(Color.Not_Installed)
     elif is_outdated(portname):
-        node.set_fillcolor("lightblue")
-        node.set_color("forestgreen")
+        node.set_fillcolor(Fillcolor.Outdated)
+        node.set_color(Color.Outdated)
 
 
 def make_tree(portname, variants, graph):
