@@ -134,6 +134,19 @@ def make_tree(portname, variants, graph):
     return graph
 
 
+def show_stats(graph):
+    """Create and display stats from the `graph`."""
+    stats = {Fillcolor.Not_Installed: 0,
+             Fillcolor.Outdated: 0,
+             Fillcolor.Default: 0}
+    for node in graph.get_nodes():
+        stats[node.get_fillcolor()] += 1
+    print("Total:", sum(stats.values()),
+          "(%i" % stats[Fillcolor.Outdated], "upgrades,",
+          stats[Fillcolor.Not_Installed], "new)",
+          file=sys.stderr)
+
+
 if __name__ == '__main__':
     graph = pydot.Dot(graph_type="digraph",
                       overlap=False,
@@ -153,4 +166,5 @@ if __name__ == '__main__':
         print("Calculating dependencies for", portname, *variants,
               file=sys.stderr)
         make_tree(portname, variants, graph)
+    show_stats(graph)
     print(graph.to_string(), file=sys.stdout)
