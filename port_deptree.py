@@ -19,7 +19,7 @@ import subprocess
 import threading
 from Queue import Queue
 import pydot
-__version__ = "0.5"
+__version__ = "0.6"
 
 
 class ThreadHandler(threading.Thread):
