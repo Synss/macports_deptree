@@ -2,7 +2,7 @@
 # Copyright (c) 2014, Mathias Laurin
 # BSD 3-Clause License (http://opensource.org/licenses/BSD-3-Clause)
 
-"""Print all dependencies required to build a port as a graph.
+r"""Print all dependencies required to build a port as a graph.
 
 Usage:
     port_deptree.py PORTNAME [VARIANTS ...]
@@ -154,14 +154,20 @@ if __name__ == '__main__':
     graph.set_node_defaults(style="filled", fillcolor="white",
                             shape="doublecircle")
     commandline = {}
-    for arg in sys.argv[1:]:
-        if arg.startswith("@"):
-            continue
-        elif not (arg.startswith("+") or arg.startswith("-")):
-            portname = arg
-            commandline[portname] = []
-        else:
-            commandline[portname].append(arg)
+    try:
+        if not sys.argv[1:]:
+            raise RuntimeError
+        for arg in sys.argv[1:]:
+            if arg.startswith("@"):
+                continue
+            elif not (arg.startswith("+") or arg.startswith("-")):
+                portname = arg
+                commandline[portname] = []
+            else:
+                commandline[portname].append(arg)
+    except:
+        print(__doc__, file=sys.stdout)
+        exit(1)
     for portname, variants in commandline.iteritems():
         print("Calculating dependencies for", portname, *variants,
               file=sys.stderr)
