@@ -62,7 +62,7 @@ def is_installed(portname):
 
 def is_outdated(portname):
     """Return True if `portname` is outdated, False otherwise."""
-    process = ["port", "Outdated", portname]
+    process = ["port", "outdated", portname]
     for line in subprocess.Popen(
             process, stdout=subprocess.PIPE).stdout.readlines():
         return not line.startswith("No")
