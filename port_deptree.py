@@ -15,6 +15,7 @@ Example:
 """
 from __future__ import print_function
 import sys
+_stdout, sys.stdout = sys.stdout, sys.stderr
 import subprocess
 import threading
 from Queue import Queue
@@ -166,11 +167,11 @@ if __name__ == '__main__':
             else:
                 commandline[portname].append(arg)
     except:
-        print(__doc__, file=sys.stdout)
+        print(__doc__, file=_stdout)
         exit(1)
     for portname, variants in commandline.iteritems():
         print("Calculating dependencies for", portname, *variants,
               file=sys.stderr)
         make_tree(portname, variants, graph)
     show_stats(graph)
-    print(graph.to_string(), file=sys.stdout)
+    print(graph.to_string(), file=_stdout)
