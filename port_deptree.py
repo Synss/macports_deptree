@@ -24,6 +24,11 @@ import pydot
 __version__ = "0.7"
 
 
+def _(bytes):
+    import locale
+    return bytes.decode(locale.getlocale()[1])
+
+
 class ThreadHandler(threading.Thread):
 
     def __init__(self, func, queue):
@@ -58,7 +63,7 @@ def is_installed(portname):
     process = ["port", "installed", portname]
     for line in subprocess.Popen(
             process, stdout=subprocess.PIPE).stdout.readlines():
-        return not line.startswith("None")
+        return not _(line).startswith("None")
 
 
 def is_outdated(portname):
@@ -66,7 +71,7 @@ def is_outdated(portname):
     process = ["port", "outdated", portname]
     for line in subprocess.Popen(
             process, stdout=subprocess.PIPE).stdout.readlines():
-        return not line.startswith("No")
+        return not _(line).startswith("No")
 
 
 def get_deps(portname, variants):
@@ -75,7 +80,7 @@ def get_deps(portname, variants):
     process.extend(variants)
     for line in subprocess.Popen(
             process, stdout=subprocess.PIPE).stdout.readlines():
-        section, sep, children = line.partition(":")
+        section, sep, children = _(line).partition(":")
         if not section.endswith("Dependencies"): continue
         for child in [child.strip() for child in children.split(",")]:
             yield section.split()[0].lower(), child
@@ -176,3 +181,4 @@ if __name__ == '__main__':
         make_tree(portname, variants, graph)
     show_stats(graph)
     print(graph.to_string(), file=_stdout)
+    _stdout.flush()
