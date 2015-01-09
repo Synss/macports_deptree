@@ -18,7 +18,8 @@ import sys
 _stdout, sys.stdout = sys.stdout, sys.stderr
 import subprocess
 import threading
-from Queue import Queue
+import six
+from six.moves.queue import Queue
 import pydot
 __version__ = "0.7"
 
@@ -169,7 +170,7 @@ if __name__ == '__main__':
     except:
         print(__doc__, file=_stdout)
         exit(1)
-    for portname, variants in commandline.iteritems():
+    for portname, variants in six.iteritems(commandline):
         print("Calculating dependencies for", portname, *variants,
               file=sys.stderr)
         make_tree(portname, variants, graph)
