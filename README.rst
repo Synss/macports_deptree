@@ -33,9 +33,9 @@ BSD 3-Clause License.
 
 Installation
 ------------
-`port_deptree` requires `py-pydot`, install with::
+`port_deptree` requires `py-pydot` and `py-six`, install with::
 
-# port install py-pydot
+# port install py-pydot py-six
 
 Then download `port_deptree.py` and copy it in a directory.  From
 this directory, run with::

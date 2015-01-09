@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2014, Mathias Laurin
+# Copyright (c) 2014, 2015 Mathias Laurin
 # BSD 3-Clause License (http://opensource.org/licenses/BSD-3-Clause)
 
 r"""Print all dependencies required to build a port as a graph.
@@ -25,8 +25,7 @@ __version__ = "0.7"
 
 
 def _(bytes):
-    import locale
-    return bytes.decode(locale.getlocale()[1])
+    return bytes.decode("utf-8")
 
 
 class ThreadHandler(threading.Thread):
