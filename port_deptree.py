@@ -20,7 +20,7 @@ import subprocess
 import threading
 import six
 from six.moves.queue import Queue
-from altgraph import Dot, Graph
+from altgraph import Dot, Graph, GraphError
 __version__ = "0.8"
 
 
@@ -87,16 +87,16 @@ def get_deps(portname, variants):
 
 def decorate_node(node):
     """Color `node` if it is Outdated or not installed."""
-    portname = node.get_name().strip('"')
+    portname, style = node
     if not is_installed(portname):
-        node.set_fillcolor(Fillcolor.Not_Installed)
-        node.set_color(Color.Not_Installed)
+        style["fillcolor"] = Fillcolor.Not_Installed
+        style["color"] = Color.Not_Installed
     elif is_outdated(portname):
-        node.set_fillcolor(Fillcolor.Outdated)
-        node.set_color(Color.Outdated)
+        style["fillcolor"] = Fillcolor.Outdated
+        style["color"] = Color.Outdated
 
 
-def make_tree(portname, variants, graph):
+def make_graph(portname, variants, graph):
     """Traverse dependency tree of `portname` with `variants`.
 
     Args:
@@ -104,40 +104,68 @@ def make_tree(portname, variants, graph):
         variants (list): The variants to apply to `portname`.
 
     Returns:
-        pydot.Dot: The graph.
+        Graph.Graph: The graph.
 
     """
     decorate_node_q = Queue()
     thread = ThreadHandler(decorate_node, decorate_node_q)
     thread.start()
+    visited = set()
     def traverse(parent):
         """Recursively traverse dependencies to `parent`."""
-        if parent.get_name() in (node.get_name() for node in graph.get_nodes()):
+        if parent in visited:
             return
         else:
-            graph.add_node(parent)
-        decorate_node_q.put(parent)
-        for section, portname in get_deps(
-                parent.get_name().strip('"'), variants):
-            child = pydot.Node(portname)
+            visited.add(parent)
+        graph.add_node(parent, {})
+        decorate_node_q.put((parent, graph.node_data(parent)))
+        for section, child in get_deps(parent.strip('"'), variants):
             if parent is not root:
-                parent.set_shape("circle")
-            edge = pydot.Edge(parent, child)
+                graph.node_data(parent)["shape"] = "circle"
+            if not child in graph:
+                graph.add_node(child, {})
             color = dict(library="black",
                          fetch="forestgreen",
                          extract="darkgreen",
                          build="blue",
                          runtime="red").get(section, "green")
-            if not section == "library":
-                edge.set_label(section)
-            edge.set_color(color)
-            edge.set_fontcolor(color)
-            graph.add_edge(edge)
+            graph.add_edge(parent, child,
+                           edge_data=dict(
+                               color=color,
+                               fontcolor=color,
+                               label=section if section != "library" else "",
+                           ),
+                           create_nodes=False)
             traverse(child)
-    root = pydot.Node(portname)
+    root = portname
     traverse(root)
     decorate_node_q.join()
     return graph
+
+
+def make_dot(graph):
+    """Convert the graph to a dot file.
+
+    Node and edge styles is obtained from the corresponding data.
+
+    Args:
+        graph (Graph.Graph): The graph.
+
+    Returns:
+        Dot.Dot: The dot file generator.
+
+    """
+    dot = Dot.Dot(graph, graphtype="digraph")
+    dot.style(overlap=False, bgcolor="transparent")
+    node_style = dict(style="filled", fillcolor=Fillcolor.Default,
+                      shape="doublecircle")
+    for node, (__, __, data) in six.iteritems(graph.nodes):
+        style = node_style.copy()
+        style.update(data)
+        dot.node_style(node, **style)
+    for head, tail, style in six.itervalues(graph.edges):
+        dot.edge_style(head, tail, **style)
+    return dot
 
 
 def show_stats(graph):
@@ -145,20 +173,16 @@ def show_stats(graph):
     stats = {Fillcolor.Not_Installed: 0,
              Fillcolor.Outdated: 0,
              Fillcolor.Default: 0}
-    for node in graph.get_nodes():
-        stats[node.get_fillcolor()] += 1
-    print("Total:", sum(stats.values()),
+    for __, __, data in six.itervalues(graph.nodes):
+        stats[data.get("fillcolor", Fillcolor.Default)] += 1
+    print("Total:", graph.number_of_nodes(),
           "(%i" % stats[Fillcolor.Outdated], "upgrades,",
           stats[Fillcolor.Not_Installed], "new)",
           file=sys.stderr)
 
 
 if __name__ == '__main__':
-    graph = pydot.Dot(graph_type="digraph",
-                      overlap=False,
-                      bgcolor="transparent")
-    graph.set_node_defaults(style="filled", fillcolor="white",
-                            shape="doublecircle")
+    graph = Graph.Graph()
     commandline = {}
     try:
         if not sys.argv[1:]:
@@ -177,7 +201,8 @@ if __name__ == '__main__':
     for portname, variants in six.iteritems(commandline):
         print("Calculating dependencies for", portname, *variants,
               file=sys.stderr)
-        make_tree(portname, variants, graph)
+        make_graph(portname, variants, graph)
     show_stats(graph)
-    print(graph.to_string(), file=_stdout)
+    for line in make_dot(graph).iterdot():
+        print(line, file=_stdout)
     _stdout.flush()
