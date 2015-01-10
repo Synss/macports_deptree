@@ -28,21 +28,6 @@ def _(bytes):
     return bytes.decode("utf-8")
 
 
-class ThreadHandler(threading.Thread):
-
-    def __init__(self, func, queue):
-        super(ThreadHandler, self).__init__()
-        self.setDaemon(True)
-        self.func = func
-        self.queue = queue
-
-    def run(self):
-        while True:
-            item = self.queue.get()
-            self.func(item)
-            self.queue.task_done()
-
-
 class Fillcolor(object):
 
     Not_Installed = "moccasin"
@@ -57,22 +42,6 @@ class Color(object):
     Default = "black"
 
 
-def is_installed(portname):
-    """Return True if `portname` is installed, False otherwise."""
-    process = ["port", "installed", portname]
-    for line in subprocess.Popen(
-            process, stdout=subprocess.PIPE).stdout.readlines():
-        return not _(line).startswith("None")
-
-
-def is_outdated(portname):
-    """Return True if `portname` is outdated, False otherwise."""
-    process = ["port", "outdated", portname]
-    for line in subprocess.Popen(
-            process, stdout=subprocess.PIPE).stdout.readlines():
-        return not _(line).startswith("No")
-
-
 def get_deps(portname, variants):
     """Return `section, depname` dependents of `portname` with `variants`."""
     process = ["port", "deps", portname]
@@ -83,17 +52,6 @@ def get_deps(portname, variants):
         if not section.endswith("Dependencies"): continue
         for child in [child.strip() for child in children.split(",")]:
             yield section.split()[0].lower(), child
-
-
-def decorate_node(node):
-    """Color `node` if it is Outdated or not installed."""
-    portname, style = node
-    if not is_installed(portname):
-        style["fillcolor"] = Fillcolor.Not_Installed
-        style["color"] = Color.Not_Installed
-    elif is_outdated(portname):
-        style["fillcolor"] = Fillcolor.Outdated
-        style["color"] = Color.Outdated
 
 
 def make_graph(portname, variants, graph):
@@ -107,9 +65,12 @@ def make_graph(portname, variants, graph):
         Graph.Graph: The graph.
 
     """
-    decorate_node_q = Queue()
-    thread = ThreadHandler(decorate_node, decorate_node_q)
-    thread.start()
+    def call(cmd):
+        return subprocess.Popen(
+            cmd.split(), stdout=subprocess.PIPE).stdout.readlines()
+
+    installed = set(_(line.split()[0]) for line in call("port echo installed"))
+    outdated = set(_(line.split()[0]) for line in call("port echo outdated"))
     visited = set()
     def traverse(parent):
         """Recursively traverse dependencies to `parent`."""
@@ -117,11 +78,16 @@ def make_graph(portname, variants, graph):
             return
         else:
             visited.add(parent)
-        graph.add_node(parent, {})
-        decorate_node_q.put((parent, graph.node_data(parent)))
+        style = graph.node_data(parent)
+        if parent not in installed:
+            style["fillcolor"] = Fillcolor.Not_Installed
+            style["color"] = Color.Not_Installed
+        elif parent in outdated:
+            style["fillcolor"] = Fillcolor.Outdated
+            style["color"] = Color.Outdated
         for section, child in get_deps(parent.strip('"'), variants):
             if parent is not root:
-                graph.node_data(parent)["shape"] = "circle"
+                style["shape"] = "circle"
             if not child in graph:
                 graph.add_node(child, {})
             color = dict(library="black",
@@ -138,8 +104,8 @@ def make_graph(portname, variants, graph):
                            create_nodes=False)
             traverse(child)
     root = portname
+    graph.add_node(root, {})
     traverse(root)
-    decorate_node_q.join()
     return graph
 
 
