@@ -19,29 +19,35 @@ Why does ``port install irssi -perl`` install `perl` anyway?
 
 Running the program from the terminal::
 
-# python port_deptree.py irssi -perl | dot -Tpng -oirssi.png
+# python port_deptree.py irssi -perl | dot -Tpdf | open -fa Preview
 
 produces the dependency graph below showing that `perl` is required by
 `glib2`, one of the direct dependencies of `irssi`.
 
 .. image:: irssi.png
 
+More examples are available on
+`my blog <http://blog.synss.me/2014/managed-macports-upgrade-2>`.
+
 License
 -------
-port_deptree Copyright (c) 2014, Mathias Laurin is distributed under the
-BSD 3-Clause License.
+port_deptree Copyright (c) 2014, 2015 Mathias Laurin is distributed under
+the BSD 3-Clause License.
 
 Installation
 ------------
-`port_deptree` requires `py-pydot` and `py-six`, install with::
+`port_deptree` 0.8 and up requires `py-altgraph` and `py-six`.  `graphviz`
+must also be installed to generate the graphs.  Install with::
 
-# port install py-pydot py-six
+# port install py-altgraph py-six graphviz
 
 Then download `port_deptree.py` and copy it in a directory.  From
 this directory, run with::
 
 # python port_deptree.py PORTNAME [-VARIANT +VARIANT ...]
 
-The graph for `py-pydot` demonstrates a more complete example.
+`port_deptree` up to 0.7 required `py-pydot`.
 
-.. image:: py-pydot.png
+The graph for `graphviz` demonstrates a more complete example.
+
+.. image:: graphviz.png
