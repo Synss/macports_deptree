@@ -20,8 +20,8 @@ import subprocess
 import threading
 import six
 from six.moves.queue import Queue
-import pydot
-__version__ = "0.7"
+from altgraph import Dot, Graph
+__version__ = "0.8"
 
 
 def _(bytes):
