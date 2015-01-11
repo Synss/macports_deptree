@@ -28,20 +28,6 @@ def _(bytes):
     return bytes.decode("utf-8")
 
 
-class Fillcolor(object):
-
-    Not_Installed = "moccasin"
-    Outdated = "lightblue"
-    Default = "white"
-
-
-class Color(object):
-
-    Not_Installed = "red"
-    Outdated = "forestgreen"
-    Default = "black"
-
-
 def get_deps(portname, variants):
     """Return `section, depname` dependents of `portname` with `variants`."""
     process = ["port", "deps", portname]
@@ -78,33 +64,19 @@ def make_graph(portname, variants, graph):
             return
         else:
             visited.add(parent)
-        style = graph.node_data(parent)
-        if parent not in installed:
-            style["fillcolor"] = Fillcolor.Not_Installed
-            style["color"] = Color.Not_Installed
-        elif parent in outdated:
-            style["fillcolor"] = Fillcolor.Outdated
-            style["color"] = Color.Outdated
+        data = graph.node_data(parent)
+        data["installed"] = parent in installed
+        data["outdated"] = parent in outdated
         for section, child in get_deps(parent.strip('"'), variants):
             if parent is not root:
-                style["shape"] = "circle"
+                data["has_children"] = True
             if not child in graph:
-                graph.add_node(child, {})
-            color = dict(library="black",
-                         fetch="forestgreen",
-                         extract="darkgreen",
-                         build="blue",
-                         runtime="red").get(section, "green")
-            graph.add_edge(parent, child,
-                           edge_data=dict(
-                               color=color,
-                               fontcolor=color,
-                               label=section if section != "library" else "",
-                           ),
+                graph.add_node(child, {"has_children": False})
+            graph.add_edge(parent, child, edge_data=section,
                            create_nodes=False)
             traverse(child)
     root = portname
-    graph.add_node(root, {})
+    graph.add_node(root, {"has_children": False})
     traverse(root)
     return graph
 
@@ -123,27 +95,38 @@ def make_dot(graph):
     """
     dot = Dot.Dot(graph, graphtype="digraph")
     dot.style(overlap=False, bgcolor="transparent")
-    node_style = dict(style="filled", fillcolor=Fillcolor.Default,
-                      shape="doublecircle")
     for node, (__, __, data) in six.iteritems(graph.nodes):
-        style = node_style.copy()
-        style.update(data)
+        style = {"style": "filled", "fillcolor": "white"}
+        style["shape"] = "circle" if data["has_children"] else "doublecircle"
+        if not data["installed"]:
+            style["color"] = "red"
+            style["fillcolor"] = "moccasin"
+        elif data["outdated"]:
+            style["color"] = "forestgreen"
+            style["fillcolor"] = "lightblue"
         dot.node_style(node, **style)
-    for head, tail, style in six.itervalues(graph.edges):
-        dot.edge_style(head, tail, **style)
+    for head, tail, section in six.itervalues(graph.edges):
+        color = dict(library="black",
+                     fetch="forestgreen",
+                     extract="darkgreen",
+                     build="blue",
+                     runtime="red").get(section, "green")
+        dot.edge_style(head, tail,
+                       label=section if section != "library" else "",
+                       color=color, fontcolor=color)
     return dot
 
 
 def show_stats(graph):
     """Create and display stats from the `graph`."""
-    stats = {Fillcolor.Not_Installed: 0,
-             Fillcolor.Outdated: 0,
-             Fillcolor.Default: 0}
+    installed = 0
+    outdated = 0
+    total = graph.number_of_nodes()
     for __, __, data in six.itervalues(graph.nodes):
-        stats[data.get("fillcolor", Fillcolor.Default)] += 1
-    print("Total:", graph.number_of_nodes(),
-          "(%i" % stats[Fillcolor.Outdated], "upgrades,",
-          stats[Fillcolor.Not_Installed], "new)",
+        installed += int(data["installed"])
+        outdated += int(data["outdated"])
+    print("Total:", total,
+          "(%i" % outdated, "upgrades,", total - installed, "new)",
           file=sys.stderr)
 
 
