@@ -28,6 +28,23 @@ def _(bytes):
     return bytes.decode("utf-8")
 
 
+class NodeData(object):
+
+    __slots__ = ("has_children", "status")
+
+    def __init__(self):
+        self.has_children = False
+        self.status = "missing"  # in (installed, outdated, missing)
+
+
+class EdgeData(object):
+
+    __slots__ = ("section",)
+
+    def __init__(self, section):
+        self.section = section
+
+
 def get_deps(portname, variants):
     """Return `section, depname` dependents of `portname` with `variants`."""
     process = ["port", "deps", portname]
@@ -64,19 +81,21 @@ def make_graph(portname, variants, graph):
             return
         else:
             visited.add(parent)
-        data = graph.node_data(parent)
-        data["installed"] = parent in installed
-        data["outdated"] = parent in outdated
+        node_data = graph.node_data(parent)
+        if parent in outdated:
+            node_data.status = "outdated"
+        elif parent in installed:
+            node_data.status = "installed"
         for section, child in get_deps(parent.strip('"'), variants):
             if parent is not root:
-                data["has_children"] = True
+                node_data.has_children = True
             if not child in graph:
-                graph.add_node(child, {"has_children": False})
-            graph.add_edge(parent, child, edge_data=section,
+                graph.add_node(child, NodeData())
+            graph.add_edge(parent, child, EdgeData(section),
                            create_nodes=False)
             traverse(child)
     root = portname
-    graph.add_node(root, {"has_children": False})
+    graph.add_node(root, NodeData())
     traverse(root)
     return graph
 
@@ -95,17 +114,16 @@ def make_dot(graph):
     """
     dot = Dot.Dot(graph, graphtype="digraph")
     dot.style(overlap=False, bgcolor="transparent")
-    for node, (__, __, data) in six.iteritems(graph.nodes):
-        style = {"style": "filled", "fillcolor": "white"}
-        style["shape"] = "circle" if data["has_children"] else "doublecircle"
-        if not data["installed"]:
-            style["color"] = "red"
-            style["fillcolor"] = "moccasin"
-        elif data["outdated"]:
-            style["color"] = "forestgreen"
-            style["fillcolor"] = "lightblue"
+    for node, (__, __, node_data) in six.iteritems(graph.nodes):
+        style = {"style": "filled"}
+        style["shape"] = "circle" if node_data.has_children else "doublecircle"
+        style["color"], style["fillcolor"] = dict(
+            missing=("red", "moccasin"),
+            outdated=("forestgreen", "lightblue")).get(node_data.status,
+                                                       ("black", "white"))
         dot.node_style(node, **style)
-    for head, tail, section in six.itervalues(graph.edges):
+    for head, tail, edge_data in six.itervalues(graph.edges):
+        section = edge_data.section
         color = dict(library="black",
                      fetch="forestgreen",
                      extract="darkgreen",
@@ -122,11 +140,13 @@ def show_stats(graph):
     installed = 0
     outdated = 0
     total = graph.number_of_nodes()
-    for __, __, data in six.itervalues(graph.nodes):
-        installed += int(data["installed"])
-        outdated += int(data["outdated"])
+    stats = dict(missing=0,
+                 installed=0,
+                 outdated=0)
+    for __, __, node_data in six.itervalues(graph.nodes):
+        stats[node_data.status] += 1
     print("Total:", total,
-          "(%i" % outdated, "upgrades,", total - installed, "new)",
+          "(%i" % stats["outdated"], "upgrades,", stats["missing"], "new)",
           file=sys.stderr)
 
 
