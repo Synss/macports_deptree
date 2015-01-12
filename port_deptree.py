@@ -21,7 +21,7 @@ import threading
 import six
 from six.moves.queue import Queue
 from altgraph import Dot, Graph, GraphError
-__version__ = "0.8"
+__version__ = "0.9"
 
 
 def _(bytes):
