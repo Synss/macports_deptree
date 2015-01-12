@@ -5,11 +5,11 @@
 r"""Print all dependencies required to build a port as a graph.
 
 Usage:
-    port_deptree.py PORTNAME [VARIANTS ...]
+    port_deptree.py [--min] PORTNAME [VARIANTS ...]
 
 Example:
     port_deptree.py irssi -perl | dot -Tpdf -oirssi.pdf
-    port_deptree.py $(port echo requested and outdated)\
+    port_deptree.py --min $(port echo requested and outdated)\
             | dot -Tpdf | open -fa Preview
 
 """
