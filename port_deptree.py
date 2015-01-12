@@ -18,6 +18,7 @@ import sys
 _stdout, sys.stdout = sys.stdout, sys.stderr
 import subprocess
 import threading
+from itertools import product
 import six
 from six.moves.queue import Queue
 from altgraph import Dot, Graph, GraphError
@@ -100,6 +101,22 @@ def make_graph(portname, variants, graph):
     return graph
 
 
+def reduce_graph(graph, root):
+    """Keep only "missing" and "outdated" nodes and their parents."""
+    for node in graph.forw_bfs(root):
+        if node is root or graph.node_data(node).status != "installed":
+            continue
+        children = set(graph.tail(edge) for edge in graph.out_edges(node))
+        if not set(("outdated", "missing")).intersection(
+                data.status for data in (graph.node_data(child)
+                                         for child in children)):
+            parents = set(graph.head(edge) for edge in graph.inc_edges(node))
+            for parent, child in product(parents, children):
+                if not graph.edge_by_node(parent, child):
+                    graph.add_edge(parent, child, EdgeData("virtual"))
+            graph.hide_node(node)
+
+
 def make_dot(graph):
     """Convert the graph to a dot file.
 
@@ -124,34 +141,33 @@ def make_dot(graph):
         dot.node_style(node, **style)
     for head, tail, edge_data in six.itervalues(graph.edges):
         section = edge_data.section
-        color = dict(library="black",
-                     fetch="forestgreen",
+        color = dict(fetch="forestgreen",
                      extract="darkgreen",
                      build="blue",
-                     runtime="red").get(section, "green")
-        dot.edge_style(head, tail,
-                       label=section if section != "library" else "",
-                       color=color, fontcolor=color)
+                     runtime="red",
+                     virtual="darkgray").get(section, "black")
+        style = dict(virtual="dashed").get(section, "solid")
+        dot.edge_style(
+            head, tail,
+            label=section if section not in ("library", "virtual") else "",
+            style=style, color=color, fontcolor=color)
     return dot
 
 
-def show_stats(graph):
-    """Create and display stats from the `graph`."""
-    installed = 0
-    outdated = 0
-    total = graph.number_of_nodes()
+def make_stats(graph):
+    """Return the stats for `graph`."""
     stats = dict(missing=0,
                  installed=0,
-                 outdated=0)
+                 outdated=0,
+                 total=graph.number_of_nodes())
     for __, __, node_data in six.itervalues(graph.nodes):
         stats[node_data.status] += 1
-    print("Total:", total,
-          "(%i" % stats["outdated"], "upgrades,", stats["missing"], "new)",
-          file=sys.stderr)
+    return stats
 
 
 if __name__ == '__main__':
     graph = Graph.Graph()
+    reduce = False
     commandline = {}
     try:
         if not sys.argv[1:]:
@@ -159,6 +175,8 @@ if __name__ == '__main__':
         for arg in sys.argv[1:]:
             if arg.startswith("@"):
                 continue
+            elif arg.startswith("--min"):
+                reduce = True
             elif not (arg.startswith("+") or arg.startswith("-")):
                 portname = arg
                 commandline[portname] = []
@@ -171,7 +189,13 @@ if __name__ == '__main__':
         print("Calculating dependencies for", portname, *variants,
               file=sys.stderr)
         make_graph(portname, variants, graph)
-    show_stats(graph)
+    stats = make_stats(graph)
+    if reduce:
+        for portname, variants in six.iteritems(commandline):
+            reduce_graph(graph, portname)
+    print("Total:", stats["total"],
+          "(%i" % stats["outdated"], "upgrades,", stats["missing"], "new)",
+          file=sys.stderr)
     for line in make_dot(graph).iterdot():
         print(line, file=_stdout)
     _stdout.flush()
