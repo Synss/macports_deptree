@@ -58,15 +58,12 @@ def get_deps(portname, variants):
             yield section.split()[0].lower(), child
 
 
-def make_graph(portname, variants, graph):
+def make_graph(graph, portname, variants):
     """Traverse dependency tree of `portname` with `variants`.
 
     Args:
         portname (str): The name of a port.
         variants (list): The variants to apply to `portname`.
-
-    Returns:
-        Graph.Graph: The graph.
 
     """
     def call(cmd):
@@ -98,7 +95,6 @@ def make_graph(portname, variants, graph):
     root = portname
     graph.add_node(root, NodeData())
     traverse(root)
-    return graph
 
 
 def reduce_graph(graph, root):
@@ -190,7 +186,7 @@ if __name__ == '__main__':
     for portname, variants in six.iteritems(commandline):
         print("Calculating dependencies for", portname, *variants,
               file=sys.stderr)
-        make_graph(portname, variants, graph)
+        make_graph(graph, portname, variants)
     stats = make_stats(graph)
     if reduce:
         for portname, variants in six.iteritems(commandline):
