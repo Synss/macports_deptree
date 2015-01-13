@@ -131,15 +131,16 @@ def make_dot(graph):
     """
     dot = Dot.Dot(graph, graphtype="digraph")
     dot.style(overlap=False, bgcolor="transparent")
-    for node, (__, __, node_data) in six.iteritems(graph.nodes):
-        style = {"style": "filled"}
-        style["shape"] = "circle" if node_data.has_children else "doublecircle"
-        style["color"], style["fillcolor"] = dict(
-            missing=("red", "moccasin"),
-            outdated=("forestgreen", "lightblue")).get(node_data.status,
-                                                       ("black", "white"))
-        dot.node_style(node, **style)
-    for head, tail, edge_data in six.itervalues(graph.edges):
+    for node in graph:
+        node_data = graph.node_data(node)
+        shape = "circle" if node_data.has_children else "doublecircle"
+        color, fillcolor = dict(missing=("red", "moccasin"),
+                                outdated=("forestgreen", "lightblue")
+                                ).get(node_data.status, ("black", "white"))
+        dot.node_style(node, shape=shape,
+                       style="filled", fillcolor=fillcolor, color=color)
+    for edge, edge_data, head, tail in (graph.describe_edge(edge)
+                                        for edge in graph.edge_list()):
         section = edge_data.section
         color = dict(fetch="forestgreen",
                      extract="darkgreen",
@@ -160,7 +161,8 @@ def make_stats(graph):
                  installed=0,
                  outdated=0,
                  total=graph.number_of_nodes())
-    for __, __, node_data in six.itervalues(graph.nodes):
+    for node in graph:
+        node_data = graph.node_data(node)
         stats[node_data.status] += 1
     return stats
 
