@@ -17,11 +17,9 @@ from __future__ import print_function
 import sys
 _stdout, sys.stdout = sys.stdout, sys.stderr
 import subprocess
-import threading
 from itertools import product
 import six
-from six.moves.queue import Queue
-from altgraph import Dot, Graph, GraphError
+from altgraph import Dot, Graph
 __version__ = "0.9"
 
 
