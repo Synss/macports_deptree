@@ -70,7 +70,7 @@ def make_graph(graph, portname, variants):
 
     installed = set(_(line.split()[0]) for line in call("port echo installed"))
     outdated = set(_(line.split()[0]) for line in call("port echo outdated"))
-    visited = set()
+    visited = set(node for node in graph)
 
     def traverse(parent):
         """Recursively traverse dependencies to `parent`."""
