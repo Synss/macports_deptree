@@ -31,10 +31,10 @@ def _(bytes):
 
 class NodeData(object):
 
-    __slots__ = ("has_children", "status")
+    __slots__ = ("type", "status")
 
-    def __init__(self):
-        self.has_children = False
+    def __init__(self, type):
+        self.type = type  # in (root, vertex, leaf)
         self.status = "missing"  # in (installed, outdated, missing)
 
 
@@ -85,22 +85,22 @@ def make_graph(graph, portname, variants):
         elif parent in installed:
             node_data.status = "installed"
         for section, child in get_deps(parent.strip('"'), variants):
-            if parent is not root:
-                node_data.has_children = True
+            if node_data.type is not "root":
+                node_data.type = "vertex"
             if not child in graph:
-                graph.add_node(child, NodeData())
+                graph.add_node(child, NodeData("leaf"))
             graph.add_edge(parent, child, EdgeData(section),
                            create_nodes=False)
             traverse(child)
-    root = portname
-    graph.add_node(root, NodeData())
-    traverse(root)
+    graph.add_node(portname, NodeData("root"))
+    traverse(portname)
 
 
 def reduce_graph(graph, root):
     """Keep only "missing" and "outdated" nodes and their parents."""
     for node in graph.forw_bfs(root):
-        if node is root or graph.node_data(node).status != "installed":
+        node_data = graph.node_data(node)
+        if node_data.type is "root" or node_data.status is not "installed":
             continue
         children = set(graph.tail(edge) for edge in graph.out_edges(node))
         if not set(("outdated", "missing")).intersection(
@@ -129,7 +129,7 @@ def make_dot(graph):
     dot.style(overlap=False, bgcolor="transparent")
     for node in graph:
         node_data = graph.node_data(node)
-        shape = "circle" if node_data.has_children else "doublecircle"
+        shape = ("circle" if node_data.type is "vertex" else "doublecircle")
         color, fillcolor = dict(missing=("red", "moccasin"),
                                 outdated=("forestgreen", "lightblue")
                                 ).get(node_data.status, ("black", "white"))
