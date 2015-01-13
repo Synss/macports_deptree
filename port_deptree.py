@@ -181,7 +181,7 @@ if __name__ == '__main__':
             else:
                 commandline[portname].append(arg)
     except:
-        print(__doc__, file=_stdout)
+        print(__doc__, file=sys.stderr)
         exit(1)
     for portname, variants in six.iteritems(commandline):
         print("Calculating dependencies for", portname, *variants,
