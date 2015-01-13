@@ -51,7 +51,8 @@ def get_deps(portname, variants):
     for line in subprocess.Popen(
             process, stdout=subprocess.PIPE).stdout.readlines():
         section, sep, children = _(line).partition(":")
-        if not section.endswith("Dependencies"): continue
+        if not section.endswith("Dependencies"):
+            continue
         for child in [child.strip() for child in children.split(",")]:
             yield section.split()[0].lower(), child
 
@@ -71,6 +72,7 @@ def make_graph(graph, portname, variants):
     installed = set(_(line.split()[0]) for line in call("port echo installed"))
     outdated = set(_(line.split()[0]) for line in call("port echo outdated"))
     visited = set()
+
     def traverse(parent):
         """Recursively traverse dependencies to `parent`."""
         if parent in visited:
@@ -85,7 +87,7 @@ def make_graph(graph, portname, variants):
         for section, child in get_deps(parent.strip('"'), variants):
             if node_data.type is not "root":
                 node_data.type = "vertex"
-            if not child in graph:
+            if child not in graph:
                 graph.add_node(child, NodeData("leaf"))
             graph.add_edge(parent, child, EdgeData(section),
                            create_nodes=False)
