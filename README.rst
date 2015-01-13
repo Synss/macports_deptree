@@ -36,10 +36,10 @@ the BSD 3-Clause License.
 
 Installation
 ------------
-`port_deptree` 0.8 and up requires `py-altgraph` and `py-six`.  `graphviz`
-must also be installed to generate the graphs.  Install with::
+`port_deptree` 0.8 and up requires `py-altgraph`.  `graphviz` must also be
+installed to generate the graphs.  Install with::
 
-# port install py-altgraph py-six graphviz
+# port install py-altgraph graphviz
 
 Then download `port_deptree.py` and copy it in a directory.  From
 this directory, run with::

@@ -18,7 +18,6 @@ import sys
 _stdout, sys.stdout = sys.stdout, sys.stderr
 import subprocess
 from itertools import product
-import six
 from altgraph import Dot, Graph
 __version__ = "0.9"
 
@@ -183,13 +182,13 @@ if __name__ == '__main__':
     except:
         print(__doc__, file=sys.stderr)
         exit(1)
-    for portname, variants in six.iteritems(commandline):
+    for portname, variants in commandline.items():
         print("Calculating dependencies for", portname, *variants,
               file=sys.stderr)
         make_graph(graph, portname, variants)
     stats = make_stats(graph)
     if reduce:
-        for portname, variants in six.iteritems(commandline):
+        for portname in commandline:
             reduce_graph(graph, portname)
     print("Total:", stats["total"],
           "(%i" % stats["outdated"], "upgrades,", stats["missing"], "new)",
