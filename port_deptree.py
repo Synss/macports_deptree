@@ -15,10 +15,12 @@ Example:
 """
 from __future__ import print_function
 import sys
+
 _stdout, sys.stdout = sys.stdout, sys.stderr
 import subprocess
 from itertools import product
 from altgraph import Dot, Graph
+
 __version__ = "0.9"
 
 
@@ -48,7 +50,8 @@ def get_deps(portname, variants):
     process = ["port", "deps", portname]
     process.extend(variants)
     for line in subprocess.Popen(
-            process, stdout=subprocess.PIPE).stdout.readlines():
+        process, stdout=subprocess.PIPE
+    ).stdout.readlines():
         section, sep, children = _(line).partition(":")
         if not section.endswith("Dependencies"):
             continue
@@ -64,9 +67,11 @@ def make_graph(graph, portname, variants):
         variants (list): The variants to apply to `portname`.
 
     """
+
     def call(cmd):
         return subprocess.Popen(
-            cmd.split(), stdout=subprocess.PIPE).stdout.readlines()
+            cmd.split(), stdout=subprocess.PIPE
+        ).stdout.readlines()
 
     installed = set(_(line.split()[0]) for line in call("port echo installed"))
     outdated = set(_(line.split()[0]) for line in call("port echo outdated"))
@@ -88,9 +93,11 @@ def make_graph(graph, portname, variants):
                 node_data.type = "vertex"
             if child not in graph:
                 graph.add_node(child, NodeData("leaf"))
-            graph.add_edge(parent, child, EdgeData(section),
-                           create_nodes=False)
+            graph.add_edge(
+                parent, child, EdgeData(section), create_nodes=False
+            )
             traverse(child)
+
     graph.add_node(portname, NodeData("root"))
     traverse(portname)
 
@@ -103,8 +110,9 @@ def reduce_graph(graph, root):
             continue
         children = set(graph.tail(edge) for edge in graph.out_edges(node))
         if not set(("outdated", "missing")).intersection(
-                data.status for data in (graph.node_data(child)
-                                         for child in children)):
+            data.status
+            for data in (graph.node_data(child) for child in children)
+        ):
             parents = set(graph.head(edge) for edge in graph.inc_edges(node))
             for parent, child in product(parents, children):
                 if not graph.edge_by_node(parent, child):
@@ -128,41 +136,48 @@ def make_dot(graph):
     dot.style(overlap=False, bgcolor="transparent")
     for node in graph:
         node_data = graph.node_data(node)
-        shape = ("circle" if node_data.type is "vertex" else "doublecircle")
-        color, fillcolor = dict(missing=("red", "moccasin"),
-                                outdated=("forestgreen", "lightblue")
-                                ).get(node_data.status, ("black", "white"))
-        dot.node_style(node, shape=shape,
-                       style="filled", fillcolor=fillcolor, color=color)
-    for edge, edge_data, head, tail in (graph.describe_edge(edge)
-                                        for edge in graph.edge_list()):
+        shape = "circle" if node_data.type is "vertex" else "doublecircle"
+        color, fillcolor = dict(
+            missing=("red", "moccasin"), outdated=("forestgreen", "lightblue")
+        ).get(node_data.status, ("black", "white"))
+        dot.node_style(
+            node, shape=shape, style="filled", fillcolor=fillcolor, color=color
+        )
+    for edge, edge_data, head, tail in (
+        graph.describe_edge(edge) for edge in graph.edge_list()
+    ):
         section = edge_data.section
-        color = dict(fetch="forestgreen",
-                     extract="darkgreen",
-                     build="blue",
-                     runtime="red",
-                     virtual="darkgray").get(section, "black")
+        color = dict(
+            fetch="forestgreen",
+            extract="darkgreen",
+            build="blue",
+            runtime="red",
+            virtual="darkgray",
+        ).get(section, "black")
         style = dict(virtual="dashed").get(section, "solid")
         dot.edge_style(
-            head, tail,
+            head,
+            tail,
             label=section if section not in ("library", "virtual") else "",
-            style=style, color=color, fontcolor=color)
+            style=style,
+            color=color,
+            fontcolor=color,
+        )
     return dot
 
 
 def make_stats(graph):
     """Return the stats for `graph`."""
-    stats = dict(missing=0,
-                 installed=0,
-                 outdated=0,
-                 total=graph.number_of_nodes())
+    stats = dict(
+        missing=0, installed=0, outdated=0, total=graph.number_of_nodes()
+    )
     for node in graph:
         node_data = graph.node_data(node)
         stats[node_data.status] += 1
     return stats
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     graph = Graph.Graph()
     reduce = False
     commandline = {}
@@ -183,16 +198,26 @@ if __name__ == '__main__':
         print(__doc__, file=sys.stderr)
         exit(1)
     for portname, variants in commandline.items():
-        print("Calculating dependencies for", portname, *variants,
-              file=sys.stderr)
+        print(
+            "Calculating dependencies for",
+            portname,
+            *variants,
+            file=sys.stderr
+        )
         make_graph(graph, portname, variants)
     stats = make_stats(graph)
     if reduce:
         for portname in commandline:
             reduce_graph(graph, portname)
-    print("Total:", stats["total"],
-          "(%i" % stats["outdated"], "upgrades,", stats["missing"], "new)",
-          file=sys.stderr)
+    print(
+        "Total:",
+        stats["total"],
+        "(%i" % stats["outdated"],
+        "upgrades,",
+        stats["missing"],
+        "new)",
+        file=sys.stderr,
+    )
     for line in make_dot(graph).iterdot():
         print(line, file=_stdout)
     _stdout.flush()
