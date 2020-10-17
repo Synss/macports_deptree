@@ -24,10 +24,6 @@ from altgraph import Dot, Graph
 __version__ = "0.9"
 
 
-def _(bytes):
-    return bytes.decode("utf-8")
-
-
 class NodeData(object):
 
     __slots__ = ("type", "status")
@@ -50,9 +46,11 @@ def get_deps(portname, variants):
     process = ["port", "deps", portname]
     process.extend(variants)
     for line in subprocess.Popen(
-        process, stdout=subprocess.PIPE
+        process,
+        stdout=subprocess.PIPE,
+        universal_newlines=True,
     ).stdout.readlines():
-        section, sep, children = _(line).partition(":")
+        section, sep, children = line.partition(":")
         if not section.endswith("Dependencies"):
             continue
         for child in [child.strip() for child in children.split(",")]:
@@ -70,11 +68,13 @@ def make_graph(graph, portname, variants):
 
     def call(cmd):
         return subprocess.Popen(
-            cmd.split(), stdout=subprocess.PIPE
+            cmd.split(),
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
         ).stdout.readlines()
 
-    installed = set(_(line.split()[0]) for line in call("port echo installed"))
-    outdated = set(_(line.split()[0]) for line in call("port echo outdated"))
+    installed = set(line.split()[0] for line in call("port echo installed"))
+    outdated = set(line.split()[0] for line in call("port echo outdated"))
     visited = set(node for node in graph)
 
     def traverse(parent):
