@@ -16,12 +16,13 @@ Example:
 from __future__ import print_function
 import sys
 
-_stdout, sys.stdout = sys.stdout, sys.stderr
 import subprocess
 from itertools import product
 from altgraph import Dot, Graph
 
 __version__ = "0.9"
+
+_stdout, sys.stdout = sys.stdout, sys.stderr
 
 
 class NodeData(object):
