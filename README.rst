@@ -38,9 +38,6 @@ $ python port_deptree.py --min graphviz | dot -Tpdf | open -fa Preview
 
 .. image:: graphviz-min.png
 
-More examples are available on
-`my blog <http://blog.synss.me/2014/managed-macports-upgrade-2>`_.
-
 License
 -------
 `port_deptree.py` is distributed under the BSD 3-Clause License,
