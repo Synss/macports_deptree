@@ -90,7 +90,7 @@ def make_graph(graph, portname, variants):
         elif parent in installed:
             node_data.status = "installed"
         for section, child in get_deps(parent.strip('"'), variants):
-            if node_data.type is not "root":
+            if node_data.type != "root":
                 node_data.type = "vertex"
             if child not in graph:
                 graph.add_node(child, NodeData("leaf"))
@@ -107,7 +107,7 @@ def reduce_graph(graph, root):
     """Keep only "missing" and "outdated" nodes and their parents."""
     for node in graph.forw_bfs(root):
         node_data = graph.node_data(node)
-        if node_data.type is "root" or node_data.status is not "installed":
+        if node_data.type == "root" or node_data.status != "installed":
             continue
         children = set(graph.tail(edge) for edge in graph.out_edges(node))
         if not set(("outdated", "missing")).intersection(
@@ -137,7 +137,7 @@ def make_dot(graph):
     dot.style(overlap=False, bgcolor="transparent")
     for node in graph:
         node_data = graph.node_data(node)
-        shape = "circle" if node_data.type is "vertex" else "doublecircle"
+        shape = "circle" if node_data.type == "vertex" else "doublecircle"
         color, fillcolor = dict(
             missing=("red", "moccasin"), outdated=("forestgreen", "lightblue")
         ).get(node_data.status, ("black", "white"))
