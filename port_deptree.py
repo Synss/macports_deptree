@@ -55,7 +55,10 @@ def get_deps(portname, variants):
         if not section.endswith("Dependencies"):
             continue
         for child in [child.strip() for child in children.split(",")]:
-            yield section.split()[0].lower(), child
+            section = section.split()[0].lower()
+            child = child.strip()
+            if child:
+                yield section, child
 
 
 def make_graph(graph, portname, variants):
